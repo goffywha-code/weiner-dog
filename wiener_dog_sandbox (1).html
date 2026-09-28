@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Wiener Dog Physics Sandbox (250+ Maps & Skins, Multi-Condiments)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            font-family: 'Inter', sans-serif;
+            color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        canvas {
+            touch-action: none;
+            cursor: crosshair;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-3 sm:p-5">
+
+    <header class="w-full max-w-6xl flex flex-col md:flex-row items-center justify-between mb-4 gap-3 bg-gray-900/80 backdrop-blur p-4 rounded-2xl border border-gray-800 shadow-xl">
+        <div class="flex items-center gap-3">
+            <span class="text-3xl animate-bounce">🌭</span>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+                    Ultimate Wiener Dog Physics Sandbox
+                </h1>
+                <p class="text-xs text-gray-400">250+ Maps & Skins • Multi-Condiment Squirter • Press [F] for Buns!</p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <button onclick="openModal('map')" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-lg transition active:scale-95 flex items-center gap-1.5 border border-indigo-400/30">
+                🗺️ Map (<span id="currentMapName">Sunny Meadow</span>)
+            </button>
+            <button onclick="openModal('skin')" class="px-3 py-2 bg-pink-600 hover:bg-pink-500 text-white font-semibold text-xs rounded-xl shadow-lg transition active:scale-95 flex items-center gap-1.5 border border-pink-400/30">
+                🎨 Skin (<span id="currentSkinName">Classic Hotdog</span>)
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-6xl flex flex-col items-center gap-4">
+        <div class="w-full bg-gray-900/60 backdrop-blur p-3 rounded-2xl border border-gray-800 flex flex-wrap items-center justify-center gap-3 shadow-md">
+            <button onclick="spawnDog()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center gap-1">
+                🐶 + Dog
+            </button>
+            <button onclick="deleteDog()" class="px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center gap-1">
+                🗑️ - Dog
+            </button>
+            <button onclick="spawnBun()" class="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center gap-1">
+                🍞 + Bun
+            </button>
+            
+            <!-- Condiment Selector -->
+            <div class="flex items-center gap-1.5 bg-gray-800/90 px-3 py-1.5 rounded-xl border border-gray-700">
+                <span class="text-xs text-gray-300 font-semibold">Sauce:</span>
+                <select id="condimentSelect" onchange="changeCondiment(this.value)" class="bg-gray-900 text-amber-300 text-xs font-bold rounded-lg px-2 py-1 border border-gray-700 focus:outline-none focus:border-amber-500">
+                    <option value="ketchup">🍅 Ketchup</option>
+                    <option value="mustard">🟡 Mustard</option>
+                    <option value="mayo">⚪ Mayo</option>
+                    <option value="relish">🟢 Relish</option>
+                    <option value="bbq">🟤 BBQ Sauce</option>
+                </select>
+            </div>
+
+            <button onclick="resetSandbox()" class="px-3.5 py-2 bg-gray-700 hover:bg-gray-600 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95">
+                🔄 Reset
+            </button>
+            <div class="text-xs text-gray-400 hidden xl:block">
+                💡 Hover near bun & press <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded text-amber-200">F</kbd>
+            </div>
+        </div>
+
+        <div class="relative w-full overflow-hidden rounded-2xl border-4 border-gray-800 shadow-2xl bg-gray-950 flex justify-center">
+            <canvas id="gameCanvas" width="960" height="500" class="w-full max-w-full h-auto aspect-[960/500]"></canvas>
+        </div>
+    </main>
+
+    <footer class="w-full max-w-6xl mt-6 p-4 bg-gray-900/80 border border-gray-800 rounded-2xl text-center text-xs text-gray-400 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div>
+            🎵 Soundtrack Jam: <a href="https://www.youtube.com/watch?v=yqOn8CKXs_Y" target="_blank" class="text-amber-400 hover:underline font-semibold">Wiener Dog, Wiener Dog, How Did You Get So Long?</a>
+        </div>
+        <div>
+            Multi-Sauce Splatter Physics • 250+ Maps & Costumes Generated
+        </div>
+    </footer>
+
+    <div id="selectionModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-gray-800 w-full max-w-4xl max-h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div class="p-4 border-b border-gray-800 flex items-center justify-between bg-gray-900/90">
+                <h2 id="modalTitle" class="text-lg font-black text-amber-400">Select Item</h2>
+                <div class="flex items-center gap-3">
+                    <input type="text" id="modalSearch" placeholder="Search 250+ items..." oninput="filterModalItems()" class="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 w-48 sm:w-64">
+                    <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-800 hover:bg-rose-600 text-white font-bold flex items-center justify-center transition">✕</button>
+                </div>
+            </div>
+            <div id="modalGrid" class="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 overflow-y-auto max-h-[65vh]"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 250+ MAPS & SKINS DATA GENERATION ---
+        const MAP_THEMES = [];
+        const MAP_ADJECTIVES = ["Sunny", "Neon", "Cosmic", "Volcanic", "Frozen", "Cyber", "Mystic", "Retro", "Golden", "Toxic", "Pixel", "Sugar", "Gothic", "Crystal", "Shadow", "Royal", "Deep", "Quantum", "Astral", "Emerald"];
+        const MAP_NOUNS = ["Meadow", "Canyon", "Cybercity", "Dimension", "Galaxy", "Tundra", "Sanctuary", "Realm", "Abyss", "Lab", "Plateau", "Forest", "Dungeon", "Station", "Valhalla", "Oasis", "Kingdom", "Matrix", "Horizon", "Nebula"];
+
+        let mapIdCounter = 1;
+        for (let adj of MAP_ADJECTIVES) {
+            for (let noun of MAP_NOUNS) {
+                if (MAP_THEMES.length >= 255) break;
+                let id = mapIdCounter++;
+                let hue = (id * 37) % 360;
+                MAP_THEMES.push({
+                    id: id,
+                    name: `${adj} ${noun} #${id}`,
+                    skyTop: `hsl(${hue}, 60%, 25%)`,
+                    skyBottom: `hsl(${hue}, 50%, 45%)`,
+                    groundColor: `hsl(${(hue + 120) % 360}, 45%, 25%)`,
+                    groundBorder: `hsl(${(hue + 120) % 360}, 50%, 15%)`,
+                    platformColor: `hsl(${(hue + 200) % 360}, 40%, 35%)`,
+                    particleColor: `hsl(${hue}, 80%, 65%)`
+                });
+            }
+        }
+
+        const DOG_SKINS = [];
+        const SKIN_PREFIXES = ["Golden", "Cyber", "Royal", "Spotted", "Neon", "Shadow", "Rainbow", "Galaxy", "Steampunk", "Crystal", "Magma", "Toxic", "Vintage", "Ghost", "Choco", "Diamond", "Ruby", "Emerald", "Titanium", "Cosmic"];
+        const SKIN_SUFFIXES = ["Wiener", "Sausage", "Hound", "Pup", "Frank", "Longboi", "Dachshund", "Canine", "Bouncer", "Stretcher", "Pooch", "Barker", "Starlight", "Shadow", "Thunder", "Blaze", "Frost", "Venom", "Phantom", "Legend"];
+
+        let skinIdCounter = 1;
+        for (let p of SKIN_PREFIXES) {
+            for (let s of SKIN_SUFFIXES) {
+                if (DOG_SKINS.length >= 255) break;
+                let id = skinIdCounter++;
+                let hue = (id * 53) % 360;
+                DOG_SKINS.push({
+                    id: id,
+                    name: `${p} ${s} #${id}`,
+                    bodyColor: `hsl(${hue}, 70%, 55%)`,
+                    bodyStroke: `hsl(${hue}, 70%, 35%)`,
+                    earColor: `hsl(${hue}, 60%, 30%)`,
+                    accentColor: `hsl(${(hue + 60) % 360}, 90%, 60%)`
+                });
+            }
+        }
+
+        let currentMap = MAP_THEMES[0];
+        let currentSkin = DOG_SKINS[0];
+        let activeModalType = null;
+
+        // Condiment color map definitions
+        const CONDIMENTS = {
+            ketchup: { name: "Ketchup", color: "#dc2626", label: "HEINZ", bottleColor: "#ef4444" },
+            mustard: { name: "Mustard", color: "#eab308", label: "FRENCH", bottleColor: "#facc15" },
+            mayo: { name: "Mayo", color: "#f3f4f6", label: "HELLMANN", bottleColor: "#e5e7eb" },
+            relish: { name: "Relish", color: "#16a34a", label: "SWEET", bottleColor: "#22c55e" },
+            bbq: { name: "BBQ Sauce", color: "#78350f", label: "SWEET BABY", bottleColor: "#92400e" }
+        };
+        let currentCondimentKey = 'ketchup';
+
+        // --- CANVAS & PHYSICS SETUP ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const gravity = 0.38;
+        let grabbedNode = null;
+        let grabbedBun = null;
+        let grabbedBottle = false;
+        let mouse = { x: 0, y: 0, prevX: 0, prevY: 0 };
+
+        let dogs = [];
+        let buns = [];
+        let sauceSplats = [];
+
+        let bottle = {
+            x: 480,
+            y: 120,
+            oldX: 480,
+            oldY: 120,
+            w: 34,
+            h: 60,
+            angle: 0
+        };
+
+        const platforms = [
+            { x: 140, y: 320, w: 220, h: 22 },
+            { x: 580, y: 260, w: 240, h: 22 },
+            { x: 360, y: 170, w: 180, h: 22 }
+        ];
+
+        const sceneryElements = [
+            { x: 120, y: 180, scale: 0.9 },
+            { x: 420, y: 140, scale: 1.2 },
+            { x: 780, y: 160, scale: 1.0 }
+        ];
+
+        // --- CLASSES ---
+        class WienerDog {
+            constructor(x, y, skin) {
+                this.skin = skin;
+                this.nodes = [];
+                this.numNodes = 8;
+                this.nodeDist = 16;
+                for (let i = 0; i < this.numNodes; i++) {
+                    this.nodes.push({
+                        x: x - (i * 14),
+                        y: y,
+                        oldX: x - (i * 14),
+                        oldY: y,
+                        pinned: false
+                    });
+                }
+            }
+
+            update() {
+                for (let i = 0; i < this.nodes.length; i++) {
+                    let node = this.nodes[i];
+                    if (node.pinned) {
+                        node.oldX = node.x;
+                        node.oldY = node.y;
+                        continue;
+                    }
+                    if (grabbedNode && grabbedNode.dog === this && grabbedNode.index === i) continue;
+
+                    let vx = (node.x - node.oldX) * 0.98;
+                    let vy = (node.y - node.oldY) * 0.98 + gravity;
+
+                    node.oldX = node.x;
+                    node.oldY = node.y;
+                    node.x += vx;
+                    node.y += vy;
+
+                    if (node.y > canvas.height - 40) {
+                        node.y = canvas.height - 40;
+                        node.oldY = node.y + vy * 0.2;
+                    }
+                    if (node.x < 25) node.x = 25;
+                    if (node.x > canvas.width - 25) node.x = canvas.width - 25;
+
+                    platforms.forEach(p => {
+                        if (node.x > p.x && node.x < p.x + p.w &&
+                            node.y > p.y && node.y < p.y + p.h + 12) {
+                            node.y = p.y;
+                            node.oldY = node.y + vy * 0.1;
+                        }
+                    });
+
+                    buns.forEach(bun => {
+                        if (bun.attachedToDog) return;
+                        if (node.x > bun.x - bun.w/2 && node.x < bun.x + bun.w/2 &&
+                            node.y > bun.y - bun.h/2 && node.y < bun.y + bun.h/2 + 12) {
+                            node.y = bun.y - bun.h/2;
+                            node.oldY = node.y + vy * 0.1;
+                        }
+                    });
+                }
+
+                for (let iter = 0; iter < 6; iter++) {
+                    for (let i = 0; i < this.nodes.length - 1; i++) {
+                        let n1 = this.nodes[i];
+                        let n2 = this.nodes[i+1];
+
+                        let dx = n2.x - n1.x;
+                        let dy = n2.y - n1.y;
+                        let dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist === 0) dist = 0.001;
+
+                        let diff = (dist - this.nodeDist) / dist;
+
+                        let isN1Grabbed = (grabbedNode && grabbedNode.dog === this && grabbedNode.index === i);
+                        let isN2Grabbed = (grabbedNode && grabbedNode.dog === this && grabbedNode.index === i+1);
+
+                        if (!n1.pinned && !isN1Grabbed) {
+                            n1.x += dx * 0.5 * diff;
+                            n1.y += dy * 0.5 * diff;
+                        }
+                        if (!n2.pinned && !isN2Grabbed) {
+                            n2.x -= dx * 0.5 * diff;
+                            n2.y -= dy * 0.5 * diff;
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                for (let i = 0; i < this.nodes.length - 1; i++) {
+                    let n1 = this.nodes[i];
+                    let n2 = this.nodes[i+1];
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(n1.x, n1.y);
+                    ctx.lineTo(n2.x, n2.y);
+                    ctx.strokeStyle = this.skin.bodyStroke;
+                    ctx.lineWidth = 28;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+
+                    ctx.strokeStyle = this.skin.bodyColor;
+                    ctx.lineWidth = 20;
+                    ctx.stroke();
+
+                    ctx.strokeStyle = this.skin.accentColor;
+                    ctx.lineWidth = 6;
+                    ctx.stroke();
+                }
+
+                for (let i = 0; i < this.nodes.length; i++) {
+                    let n = this.nodes[i];
+                    if (n.pinned) {
+                        ctx.fillStyle = '#ef4444';
+                        ctx.beginPath();
+                        ctx.arc(n.x, n.y, 7, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
+                }
+
+                let backLeg = this.nodes[this.nodes.length - 2];
+                let frontLeg = this.nodes[1];
+                ctx.strokeStyle = this.skin.bodyStroke;
+                ctx.lineWidth = 7;
+                ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(backLeg.x, backLeg.y); ctx.lineTo(backLeg.x - 6, backLeg.y + 18); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(frontLeg.x, frontLeg.y); ctx.lineTo(frontLeg.x + 6, frontLeg.y + 18); ctx.stroke();
+
+                let head = this.nodes[0];
+                ctx.fillStyle = this.skin.bodyColor;
+                ctx.beginPath();
+                ctx.arc(head.x, head.y, 16, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = this.skin.bodyStroke;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.fillStyle = this.skin.earColor;
+                ctx.beginPath();
+                ctx.ellipse(head.x - 4, head.y + 4, 7, 14, Math.PI / 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = this.skin.bodyColor;
+                ctx.beginPath();
+                ctx.ellipse(head.x + 11, head.y + 3, 11, 7, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#111';
+                ctx.beginPath();
+                ctx.arc(head.x + 19, head.y + 2, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(head.x + 4, head.y - 4, 5.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(head.x + 5, head.y - 4, 2.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class HotdogBun {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.oldX = x;
+                this.oldY = y;
+                this.w = 100;
+                this.h = 48;
+                this.attachedToDog = null;
+            }
+
+            update() {
+                if (grabbedBun === this) return;
+
+                if (this.attachedToDog) {
+                    let targetNode = this.attachedToDog.nodes[Math.floor(this.attachedToDog.nodes.length / 2)];
+                    this.x = targetNode.x;
+                    this.y = targetNode.y;
+                    this.oldX = this.x;
+                    this.oldY = this.y;
+                } else {
+                    let vx = (this.x - this.oldX) * 0.98;
+                    let vy = (this.y - this.oldY) * 0.98 + gravity;
+
+                    this.oldX = this.x;
+                    this.oldY = this.y;
+                    this.x += vx;
+                    this.y += vy;
+
+                    if (this.y > canvas.height - 35) {
+                        this.y = canvas.height - 35;
+                        this.oldY = this.y + vy * 0.2;
+                        this.x -= vx * 0.3;
+                    }
+                    if (this.x < 35) this.x = 35;
+                    if (this.x > canvas.width - 35) this.x = canvas.width - 35;
+
+                    platforms.forEach(p => {
+                        if (this.x > p.x && this.x < p.x + p.w &&
+                            this.y > p.y - 22 && this.y < p.y + p.h) {
+                            this.y = p.y - 22;
+                            this.oldY = this.y + vy * 0.1;
+                        }
+                    });
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.roundRect(-this.w/2, -this.h/2, this.w, this.h, [20, 20, 28, 28]);
+                ctx.fill();
+                ctx.strokeStyle = '#b45309';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.fillStyle = '#d97706';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.w * 0.36, this.h * 0.32, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // --- INITIALIZATION ---
+        function initSandbox() {
+            dogs = [new WienerDog(300, 150, currentSkin)];
+            buns = [new HotdogBun(600, 180)];
+            sauceSplats = [];
+        }
+
+        function spawnDog() {
+            dogs.push(new WienerDog(200 + Math.random() * 200, 120, currentSkin));
+        }
+
+        function deleteDog() {
+            if (dogs.length > 0) dogs.pop();
+        }
+
+        function spawnBun() {
+            buns.push(new HotdogBun(300 + Math.random() * 300, 120));
+        }
+
+        function changeCondiment(val) {
+            currentCondimentKey = val;
+        }
+
+        function resetSandbox() {
+            initSandbox();
+            bottle.x = 480;
+            bottle.y = 120;
+            bottle.oldX = 480;
+            bottle.oldY = 120;
+            bottle.angle = 0;
+        }
+
+        // --- INPUT LISTENERS ---
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'f') {
+                let closestBun = null;
+                let minDist = 70;
+                buns.forEach(bun => {
+                    let d = Math.hypot(bun.x - mouse.x, bun.y - mouse.y);
+                    if (d < minDist) {
+                        minDist = d;
+                        closestBun = bun;
+                    }
+                });
+
+                if (closestBun) {
+                    if (closestBun.attachedToDog) {
+                        closestBun.attachedToDog = null;
+                    } else {
+                        let closestDog = null;
+                        let minDogDist = 130;
+                        dogs.forEach(dog => {
+                            dog.nodes.forEach(node => {
+                                let d = Math.hypot(node.x - closestBun.x, node.y - closestBun.y);
+                                if (d < minDogDist) {
+                                    minDogDist = d;
+                                    closestDog = dog;
+                                }
+                            });
+                        });
+                        if (closestDog) {
+                            closestBun.attachedToDog = closestDog;
+                        }
+                    }
+                }
+            }
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+
+            if (Math.hypot(bottle.x - mx, bottle.y - my) < 35) {
+                grabbedBottle = true;
+                return;
+            }
+
+            for (let bun of buns) {
+                if (Math.abs(bun.x - mx) < bun.w/2 && Math.abs(bun.y - my) < bun.h/2) {
+                    grabbedBun = bun;
+                    bun.attachedToDog = null;
+                    return;
+                }
+            }
+
+            for (let dog of dogs) {
+                for (let i = 0; i < dog.nodes.length; i++) {
+                    let node = dog.nodes[i];
+                    if (Math.hypot(node.x - mx, node.y - my) < 22) {
+                        if (e.button === 2 || e.shiftKey) {
+                            node.pinned = !node.pinned;
+                            node.oldX = node.x;
+                            node.oldY = node.y;
+                        } else {
+                            grabbedNode = { dog: dog, index: i };
+                            node.pinned = false;
+                        }
+                        return;
+                    }
+                }
+            }
+        });
+
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        window.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            mouse.prevX = mouse.x;
+            mouse.prevY = mouse.y;
+            mouse.x = (e.clientX - rect.left) * scaleX;
+            mouse.y = (e.clientY - rect.top) * scaleY;
+        });
+
+        window.addEventListener('mouseup', () => {
+            grabbedNode = null;
+            grabbedBun = null;
+            grabbedBottle = false;
+        });
+
+        // --- MODAL SELECTION LOGIC ---
+        function openModal(type) {
+            activeModalType = type;
+            const modal = document.getElementById('selectionModal');
+            const title = document.getElementById('modalTitle');
+            const search = document.getElementById('modalSearch');
+            search.value = '';
+            
+            title.innerText = type === 'map' ? 'Select Map Theme (250+)' : 'Select Wiener Dog Skin (250+)';
+            renderModalGrid('');
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('selectionModal').classList.add('hidden');
+        }
+
+        function filterModalItems() {
+            const query = document.getElementById('modalSearch').value.toLowerCase();
+            renderModalGrid(query);
+        }
+
+        function renderModalGrid(query) {
+            const grid = document.getElementById('modalGrid');
+            grid.innerHTML = '';
+
+            let items = activeModalType === 'map' ? MAP_THEMES : DOG_SKINS;
+            let filtered = items.filter(item => item.name.toLowerCase().includes(query));
+
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "p-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-2xl cursor-pointer flex flex-col items-center justify-center gap-2 transition active:scale-95 shadow-md group";
+                
+                if (activeModalType === 'map') {
+                    card.innerHTML = `
+                        <div class="w-full h-12 rounded-xl shadow-inner border border-gray-600" style="background: linear-gradient(to bottom, ${item.skyTop}, ${item.groundColor})"></div>
+                        <span class="text-xs font-bold text-center text-gray-200 group-hover:text-amber-400 truncate w-full">${item.name}</span>
+                    `;
+                    card.onclick = () => {
+                        currentMap = item;
+                        document.getElementById('currentMapName').innerText = item.name;
+                        closeModal();
+                    };
+                } else {
+                    card.innerHTML = `
+                        <div class="w-10 h-10 rounded-full shadow-md border-2 border-gray-600 flex items-center justify-center text-lg" style="background-color: ${item.bodyColor}">🐶</div>
+                        <span class="text-xs font-bold text-center text-gray-200 group-hover:text-pink-400 truncate w-full">${item.name}</span>
+                    `;
+                    card.onclick = () => {
+                        currentSkin = item;
+                        document.getElementById('currentSkinName').innerText = item.name;
+                        dogs.forEach(d => d.skin = currentSkin);
+                        closeModal();
+                    };
+                }
+                grid.appendChild(card);
+            });
+        }
+
+        // --- MAIN LOOP & FIXED SAUCE SPLATTER PHYSICS ---
+        function update() {
+            if (grabbedNode) {
+                let node = grabbedNode.dog.nodes[grabbedNode.index];
+                node.x = mouse.x;
+                node.y = mouse.y;
+                node.oldX = mouse.x;
+                node.oldY = mouse.y;
+            }
+
+            if (grabbedBun) {
+                grabbedBun.x = mouse.x;
+                grabbedBun.y = mouse.y;
+                grabbedBun.oldX = mouse.x - (mouse.x - mouse.prevX);
+                grabbedBun.oldY = mouse.y - (mouse.y - mouse.prevY);
+            }
+
+            if (grabbedBottle) {
+                bottle.x = mouse.x;
+                bottle.y = mouse.y;
+                bottle.oldX = mouse.x - (mouse.x - mouse.prevX);
+                bottle.oldY = mouse.y - (mouse.y - mouse.prevY);
+                bottle.angle = (mouse.x - mouse.prevX) * 0.05;
+            } else {
+                let vx = (bottle.x - bottle.oldX) * 0.98;
+                let vy = (bottle.y - bottle.oldY) * 0.98 + gravity;
+
+                bottle.oldX = bottle.x;
+                bottle.oldY = bottle.y;
+                bottle.x += vx;
+                bottle.y += vy;
+
+                if (bottle.y > canvas.height - 45) {
+                    bottle.y = canvas.height - 45;
+                    bottle.oldY = bottle.y + vy * 0.2;
+                    bottle.x -= vx * 0.3;
+                }
+                if (bottle.x < 30) bottle.x = 30;
+                if (bottle.x > canvas.width - 30) bottle.x = canvas.width - 30;
+
+                platforms.forEach(p => {
+                    if (bottle.x > p.x && bottle.x < p.x + p.w &&
+                        bottle.y > p.y - 18 && bottle.y < p.y + p.h) {
+                        bottle.y = p.y - 18;
+                        bottle.oldY = bottle.y + vy * 0.1;
+                    }
+                });
+
+                bottle.angle *= 0.9;
+            }
+
+            // Pour Sauce Droplets
+            let tiltMagnitude = Math.abs(bottle.angle) + Math.abs(bottle.y - bottle.oldY);
+            if (tiltMagnitude > 4 || (grabbedBottle && Math.abs(mouse.y - mouse.prevY) > 12)) {
+                let tipX = bottle.x - Math.sin(bottle.angle) * 32;
+                let tipY = bottle.y - Math.cos(bottle.angle) * 32;
+                sauceSplats.push({
+                    x: tipX + (Math.random() - 0.5) * 6,
+                    y: tipY,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: 2.5 + Math.random() * 2,
+                    color: CONDIMENTS[currentCondimentKey].color,
+                    stuckToDog: null,
+                    stuckSegmentIndex: null,
+                    localOffsetX: 0,
+                    localOffsetY: 0
+                });
+            }
+
+            buns.forEach(bun => bun.update());
+            dogs.forEach(dog => dog.update());
+
+            // Update sauce splats with fixed attachment mechanic (sticks right where it hits!)
+            for (let i = sauceSplats.length - 1; i >= 0; i--) {
+                let s = sauceSplats[i];
+
+                if (s.stuckToDog) {
+                    // Follow the specific segment node/line where it stuck so it never slides to tail
+                    let dog = s.stuckToDog;
+                    if (dog.nodes[s.stuckSegmentIndex]) {
+                        let node = dog.nodes[s.stuckSegmentIndex];
+                        s.x = node.x + s.localOffsetX;
+                        s.y = node.y + s.localOffsetY;
+                    }
+                } else {
+                    s.x += s.vx;
+                    s.y += s.vy;
+                    s.vy += 0.22;
+
+                    // Floor collision
+                    if (s.y > canvas.height - 40) {
+                        s.y = canvas.height - 40;
+                        s.vy = 0;
+                        s.vx = 0;
+                    }
+
+                    // Check collision with ANY dog body segment
+                    dogs.forEach(dog => {
+                        for (let j = 0; j < dog.nodes.length; j++) {
+                            let node = dog.nodes[j];
+                            if (Math.hypot(node.x - s.x, node.y - s.y) < 18) {
+                                s.stuckToDog = dog;
+                                s.stuckSegmentIndex = j;
+                                s.localOffsetX = s.x - node.x;
+                                s.localOffsetY = s.y - node.y;
+                                s.vy = 0;
+                                s.vx = 0;
+                                break;
+                            }
+                        }
+                    });
+                }
+
+                if (sauceSplats.length > 300) {
+                    sauceSplats.shift();
+                }
+            }
+        }
+
+        function draw() {
+            let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, currentMap.skyTop);
+            gradient.addColorStop(0.6, currentMap.skyBottom);
+            gradient.addColorStop(0.6, currentMap.groundColor);
+            gradient.addColorStop(1, currentMap.groundBorder);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            sceneryElements.forEach(sc => {
+                ctx.save();
+                ctx.translate(sc.x, sc.y);
+                ctx.scale(sc.scale, sc.scale);
+                ctx.fillStyle = currentMap.particleColor;
+                ctx.globalAlpha = 0.4;
+                ctx.beginPath();
+                ctx.arc(0, 0, 40, 0, Math.PI * 2);
+                ctx.arc(30, -20, 30, 0, Math.PI * 2);
+                ctx.arc(-30, -20, 30, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            platforms.forEach(p => {
+                ctx.fillStyle = currentMap.platformColor;
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.strokeStyle = currentMap.groundBorder;
+                ctx.lineWidth = 3;
+                ctx.strokeRect(p.x, p.y, p.w, p.h);
+            });
+
+            buns.forEach(bun => bun.draw());
+            dogs.forEach(dog => dog.draw());
+
+            // Draw Sauce Splats everywhere they landed
+            sauceSplats.forEach(s => {
+                ctx.fillStyle = s.color;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Condiment Bottle
+            let activeCond = CONDIMENTS[currentCondimentKey];
+            ctx.save();
+            ctx.translate(bottle.x, bottle.y);
+            ctx.rotate(bottle.angle);
+            ctx.fillStyle = activeCond.bottleColor;
+            ctx.beginPath();
+            ctx.roundRect(-17, -30, 34, 54, [7, 7, 14, 14]);
+            ctx.fill();
+            ctx.strokeStyle = '#1f2937';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(-12, -13, 24, 28);
+            ctx.fillStyle = '#111';
+            ctx.font = 'bold 7px sans-serif';
+            ctx.fillText(activeCond.label, -11, -1);
+            ctx.fillText(activeCond.name.toUpperCase(), -12, 10);
+
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(-4.5, -38, 9, 10);
+            ctx.restore();
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        initSandbox();
+        loop();
+    </script>
+</body>
+</html>
